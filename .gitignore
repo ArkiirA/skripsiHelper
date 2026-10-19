@@ -1,6 +1,26 @@
-skripsi_helper/
+# Virtual environment
 .venv/
+
+# Cache
 .pytest_cache/
+
+# Database files
 *.db
 *.sqlite
+
+# Logs
 *.log
+
+# Environment (secrets)
+.env
+.env.*
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
