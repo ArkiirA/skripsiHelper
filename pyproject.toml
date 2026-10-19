@@ -21,6 +21,7 @@ dependencies = [
     "sqlmodel>=0.0.48",
     "python-multipart>=0.0.32",
     "pymupdf>=1.28.2",
+    "python-docx>=1.2.0",
 ]
 
 [project.scripts]

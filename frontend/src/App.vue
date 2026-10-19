@@ -257,6 +257,33 @@ const formattedBibliography = computed(() => {
   })
 })
 
+const exportLoading = ref(false)
+
+const exportDocument = async (format) => {
+  exportLoading.value = true
+  try {
+    // In real app, call API: /api/v1/projects/1/export/${format}
+    const endpoint = `/api/v1/projects/1/export/${format}`
+    const response = await fetch(endpoint)
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`)
+    }
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `skripsi.${format}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (err) {
+    alert(`Export gagal: ${err.message || 'Terjadi kesalahan sistem'}`)
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 const copyBibliography = () => {
   const text = formattedBibliography.value.map((b) => b.formatted).join('\n\n')
   navigator.clipboard.writeText(text)
@@ -288,6 +315,25 @@ const copyBibliography = () => {
 
         <div class="user-pill">
           Mahasiswa UI (Hukum)
+        </div>
+
+        <div class="export-actions">
+          <button
+            type="button"
+            class="btn-export btn-docx"
+            :disabled="exportLoading"
+            @click="exportDocument('docx')"
+          >
+            📄 DOCX
+          </button>
+          <button
+            type="button"
+            class="btn-export btn-pdf"
+            :disabled="exportLoading"
+            @click="exportDocument('pdf')"
+          >
+            📕 PDF
+          </button>
         </div>
       </div>
     </header>
@@ -559,6 +605,46 @@ const copyBibliography = () => {
   padding: 0.35rem 0.75rem;
   border-radius: 9999px;
   color: var(--text-main);
+}
+
+.export-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-export:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  border-color: var(--text-muted);
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-docx:hover:not(:disabled) {
+  color: #2b579a;
+  border-color: #2b579a;
+}
+
+.btn-pdf:hover:not(:disabled) {
+  color: #b30b00;
+  border-color: #b30b00;
 }
 
 .workspace-body {
