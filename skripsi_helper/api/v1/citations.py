@@ -183,6 +183,53 @@ def create_manual_citation(
     return citation
 
 
+@router.post("/projects/{project_id}/citations/from-paper", response_model=CitationOut, status_code=status.HTTP_201_CREATED)
+def add_citation_from_paper(
+    project_id: int,
+    paper_in: CitationCreateManual,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Add a discovered paper to project citations with metadata saved (no PDF required)."""
+    verify_project_ownership(project_id, current_user.id, db)
+
+    if paper_in.doi:
+        existing = db.execute(
+            select(Citation).where(
+                Citation.skripsi_project_id == project_id,
+                Citation.doi == paper_in.doi,
+            )
+        ).scalar_one_or_none()
+        if existing:
+            return existing
+
+    meta_dict = paper_in.model_dump()
+    citation_str = format_citation_string(meta_dict, style=paper_in.citation_style or "apa")
+
+    citation = Citation(
+        skripsi_project_id=project_id,
+        section_id=paper_in.section_id,
+        title=paper_in.title,
+        authors=paper_in.authors,
+        year=paper_in.year,
+        journal=paper_in.journal,
+        volume=paper_in.volume,
+        issue=paper_in.issue,
+        pages=paper_in.pages,
+        doi=paper_in.doi,
+        url=paper_in.url,
+        citation_string=citation_str,
+        citation_style=paper_in.citation_style or "apa",
+        is_manual=False,
+        needs_manual_completion=False,
+        source="paper_search",
+    )
+    db.add(citation)
+    db.commit()
+    db.refresh(citation)
+    return citation
+
+
 @router.get("/projects/{project_id}/citations", response_model=List[CitationOut])
 def list_project_citations(
     project_id: int,

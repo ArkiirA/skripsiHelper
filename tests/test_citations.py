@@ -89,3 +89,11 @@ def test_list_citations_unauthorized():
 def test_download_citation_pdf_unauthorized():
     response = client.get("/citations/1/download")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_add_citation_from_paper_unauthorized():
+    response = client.post(
+        "/projects/1/citations/from-paper",
+        json={"title": "Attention Is All You Need", "year": 2017},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
