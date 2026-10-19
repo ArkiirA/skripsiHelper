@@ -47,7 +47,7 @@ class Section(Base):
     skripsi_project_id = Column(Integer, ForeignKey("skripsi_projects.id"), nullable=False)
     title = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
-    content = Column(Text, default="")  # Tiptap JSON or plain text
+    content = Column(JSON, default=dict)  # Tiptap JSON schema structure
     order = Column(Integer, default=0)
     is_completed = Column(Boolean, default=False)
     word_count = Column(Integer, default=0)

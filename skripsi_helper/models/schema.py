@@ -47,6 +47,9 @@ class SectionOut(BaseModel):
     title: str
     slug: str
     order: int
+    content: Optional[Any] = None
+    word_count: int = 0
+    status: str = "active"
     min_pages: Optional[int] = None
     max_pages: Optional[int] = None
     description: Optional[str] = None
@@ -105,7 +108,7 @@ class SectionCreate(BaseModel):
 
 class SectionUpdate(BaseModel):
     """Request to update a section."""
-    content: Optional[str] = None
+    content: Optional[Any] = None
     is_completed: Optional[bool] = None
     word_count: Optional[int] = None
     status: Optional[str] = None

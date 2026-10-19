@@ -1,0 +1,90 @@
+:root {
+  --bg-primary: #fcfbf9;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f3f2ee;
+  --border: #e6e4df;
+  --text-main: #27272a;
+  --text-muted: #71717a;
+  --teal-accent: #0f766e;
+  --teal-hover: #115e59;
+  --teal-light: #f0fdfa;
+  --danger: #dc2626;
+
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #121316;
+    --bg-surface: #18191e;
+    --bg-subtle: #22242b;
+    --border: #2e313b;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --teal-accent: #14b8a6;
+    --teal-hover: #2dd4bf;
+    --teal-light: #132d2b;
+    --danger: #ef4444;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+}
+
+/* Tiptap editor typography & styles */
+.tiptap {
+  outline: none;
+  min-height: 350px;
+  line-height: 1.75;
+  font-size: 1.05rem;
+}
+
+.tiptap p {
+  margin-bottom: 1rem;
+}
+
+.tiptap h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.8rem;
+}
+
+.tiptap h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.6rem;
+}
+
+.tiptap h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid var(--teal-accent);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
