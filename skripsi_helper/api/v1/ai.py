@@ -40,13 +40,27 @@ router = APIRouter(prefix="/ai", tags=["ai-assist"])
 DAILY_AI_CAP = 5
 
 
-async def enforce_daily_cap(current_user: User) -> None:
-    """Enforce daily AI action cap for free users."""
+async def enforce_daily_cap(
+    current_user: User, db: Optional[Session] = None, project_id: Optional[int] = None
+) -> None:
+    """Enforce daily AI action cap for free users.
+
+    Premium users and premium projects bypass the daily cap.
+    """
     current_user.reset_daily_ai_count()
-    
+
     is_premium = bool(getattr(current_user, "is_premium", False))
     ai_actions_today = int(getattr(current_user, "ai_actions_today", 0))
-    
+
+    # Check if project is premium (bypass cap)
+    if project_id and db:
+        project_stmt = select(SkripsiProject).where(
+            SkripsiProject.id == project_id
+        )
+        project = db.execute(project_stmt).scalar_one_or_none()
+        if project and bool(getattr(project, "is_premium", False)):
+            is_premium = True
+
     if not is_premium and ai_actions_today >= DAILY_AI_CAP:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -69,7 +83,7 @@ async def suggest_outline_endpoint(
     db: Session = Depends(get_session),
 ):
     """Suggest outline based on topic and pedoman structure."""
-    await enforce_daily_cap(current_user)
+    await enforce_daily_cap(current_user, db=db, project_id=request.project_id)
     
     project = db.execute(
         select(SkripsiProject).where(SkripsiProject.id == request.project_id)
@@ -127,7 +141,7 @@ async def check_grammar_endpoint(
     db: Session = Depends(get_session),
 ):
     """Check grammar using LanguageTool."""
-    await enforce_daily_cap(current_user)
+    await enforce_daily_cap(current_user, db=db, project_id=request.project_id)
     
     result = await check_grammar(request.text, request.language or "id-ID")
     
@@ -152,7 +166,7 @@ async def check_style_endpoint(
     db: Session = Depends(get_session),
 ):
     """Check academic style using Gemini."""
-    await enforce_daily_cap(current_user)
+    await enforce_daily_cap(current_user, db=db, project_id=request.project_id)
     
     topic = ""
     if request.project_id:

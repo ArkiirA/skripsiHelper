@@ -953,6 +953,18 @@ wheels = [
 ]
 
 [[package]]
+name = "midtransclient"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/38/85/abb72e161da315be01316002dbba26b53dda14a9ca3a78964ba47e69df00/midtransclient-1.4.2.tar.gz", hash = "sha256:0c562af79121d8d915a4bc93f4dca849837e4fbebc9a01c5528575ca6af953ed", size = 20676, upload-time = "2023-10-18T10:52:13.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/fc/d71ae984d62a854a8f43291df6e18a8e1d0691465aeb4023b5af31e42803/midtransclient-1.4.2-py3-none-any.whl", hash = "sha256:37186bbddbbee078e3efde1b1b1f1a57fc9f52d7fd31b1ddc8b0de14ab7f90d6", size = 22294, upload-time = "2023-10-18T10:52:11.477Z" },
+]
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.45.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1418,6 +1430,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "google-cloud-storage" },
     { name = "httpx" },
+    { name = "midtransclient" },
     { name = "psycopg2-binary" },
     { name = "pydantic-settings" },
     { name = "pymupdf" },
@@ -1436,6 +1449,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.146.0" },
     { name = "google-cloud-storage", specifier = ">=2.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "midtransclient", specifier = ">=1.4.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "pydantic-settings", specifier = ">=2.16.0" },
     { name = "pymupdf", specifier = ">=1.28.2" },

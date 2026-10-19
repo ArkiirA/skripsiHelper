@@ -91,6 +91,7 @@ class SkripsiProjectOut(BaseModel):
     pedoman_preset_id: Optional[int] = None
     is_active: bool = True
     status: str = "draft"
+    is_premium: bool = False
     word_count: int = 0
     completion_percentage: int = 0
     last_saved: datetime
@@ -239,3 +240,40 @@ class CheckResponse(BaseModel):
     matches: Optional[List[Any]] = None
     language: Optional[str] = None
     analysis: Optional[str] = None
+
+
+# Payment schemas
+class PaymentInitiateRequest(BaseModel):
+    """Request to initiate Midtrans payment for project premium unlock."""
+    skripsi_project_id: int
+    payment_type: Optional[str] = "qris"
+
+
+class PaymentInitiateResponse(BaseModel):
+    """Response from initiating Midtrans Snap transaction."""
+    payment_id: int
+    order_id: str
+    snap_token: Optional[str] = None
+    redirection_url: Optional[str] = None
+    amount: int = 50000
+    already_premium: bool = False
+
+
+class PaymentStatusResponse(BaseModel):
+    """Payment transaction status response."""
+    payment_id: int
+    order_id: str
+    payment_status: str
+    is_premium_unlocked: bool
+    payment_type: Optional[str] = None
+    amount: int = 50000
+
+
+class ProjectPaymentStatusOut(BaseModel):
+    """Payment status for project settings."""
+    project_id: int
+    is_premium: bool
+    status: str  # "free" or "premium"
+    payment_status: Optional[str] = None
+    amount: int = 50000
+

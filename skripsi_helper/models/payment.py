@@ -14,7 +14,8 @@ class Payment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     skripsi_project_id = Column(Integer, ForeignKey("skripsi_projects.id"), nullable=True)
 
-    transaction_id = Column(String, unique=True, nullable=False)  # Midtrans ID
+    order_id = Column(String, unique=True, index=True, nullable=True)
+    transaction_id = Column(String, unique=True, nullable=True)  # Midtrans ID
     payment_type = Column(String, nullable=False)  # qris, gopay, ovo, bank_transfer
     amount = Column(Integer, default=50000)  # Rp 50,000
     currency = Column(String, default="IDR")

@@ -19,6 +19,7 @@ class SkripsiProject(Base):
     topic = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     status = Column(String, default="draft")  # draft, writing, review, submitted
+    is_premium = Column(Boolean, default=False)  # Premium unlock via payment
 
     # Progress tracking
     word_count = Column(Integer, default=0)

@@ -18,6 +18,11 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
+    # Midtrans settings
+    MIDTRANS_SERVER_KEY: str = Field(default="SB-Mid-server-dummy")
+    MIDTRANS_CLIENT_KEY: str = Field(default="SB-Mid-client-dummy")
+    MIDTRANS_IS_PRODUCTION: bool = False
+
     class Config:
         env_file = ".env"
         case_sensitive = True
