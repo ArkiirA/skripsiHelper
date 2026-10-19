@@ -64,3 +64,4 @@ class Section(Base):
     skripsi_project = relationship("SkripsiProject", back_populates="sections")
     citations = relationship("Citation", back_populates="section", cascade="all, delete-orphan")
     uploaded_pdfs = relationship("UploadedPdf", back_populates="section", cascade="all, delete-orphan")
+    snapshots = relationship("Snapshot", back_populates="section", cascade="all, delete-orphan")

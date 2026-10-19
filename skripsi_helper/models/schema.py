@@ -112,3 +112,16 @@ class SectionUpdate(BaseModel):
     is_completed: Optional[bool] = None
     word_count: Optional[int] = None
     status: Optional[str] = None
+
+
+class SnapshotOut(BaseModel):
+    """Snapshot response model."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    skripsi_project_id: int
+    section_id: Optional[int] = None
+    word_count: int = 0
+    note: Optional[str] = None
+    created_at: datetime
+    content_snapshot: Optional[Any] = None

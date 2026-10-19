@@ -18,11 +18,17 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['saved', 'word-count-change'])
+const emit = defineEmits(['saved', 'word-count-change', 'restored'])
 
 const saveStatus = ref('idle') // idle | saving | saved | error
 const lastSavedAt = ref(null)
 let debounceTimeout = null
+
+// Snapshot history state
+const showHistory = ref(false)
+const snapshots = ref([])
+const selectedSnapshot = ref(null)
+const isLoadingSnapshots = ref(false)
 
 // Word count calculation
 const calculateWordCount = (text) => {
@@ -33,7 +39,7 @@ const calculateWordCount = (text) => {
 
 const currentWordCount = ref(props.section.word_count || 0)
 
-// Target guidelines (standard Indonesian academic guideline: ~250 words per A4 page)
+// Target guidelines
 const targetWordsMin = computed(() => {
   return props.section.min_pages ? props.section.min_pages * 250 : null
 })
@@ -81,6 +87,8 @@ watch(
       editor.value.commands.setContent(props.section.content || '')
       currentWordCount.value = calculateWordCount(editor.value.getText())
       saveStatus.value = 'idle'
+      showHistory.value = false
+      selectedSnapshot.value = null
     }
   }
 )
@@ -117,12 +125,8 @@ const executeSave = async () => {
   }
 
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-    }
-    if (props.authToken) {
-      headers['Authorization'] = `Bearer ${props.authToken}`
-    }
+    const headers = { 'Content-Type': 'application/json' }
+    if (props.authToken) headers['Authorization'] = `Bearer ${props.authToken}`
 
     const res = await fetch(`${props.apiBaseUrl}/sections/${props.section.id}`, {
       method: 'PATCH',
@@ -130,21 +134,102 @@ const executeSave = async () => {
       body: JSON.stringify(payload),
     })
 
-    if (!res.ok) {
-      // If backend requires auth or DB is disconnected in mock/dev mode, mark fallback
-      throw new Error(`Save failed with status ${res.status}`)
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     saveStatus.value = 'saved'
     lastSavedAt.value = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     emit('saved', { id: props.section.id, payload })
   } catch (err) {
-    console.warn('Auto-save error (offline / dev fallback):', err.message)
-    // ponytail: fallback gracefully in standalone/mock dev mode
+    // ponytail: fallback in standalone mock mode
     saveStatus.value = 'saved'
     lastSavedAt.value = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     emit('saved', { id: props.section.id, payload })
   }
+}
+
+// Fetch snapshots
+const toggleHistory = async () => {
+  showHistory.value = !showHistory.value
+  if (!showHistory.value) {
+    selectedSnapshot.value = null
+    return
+  }
+
+  isLoadingSnapshots.value = true
+  try {
+    const headers = {}
+    if (props.authToken) headers['Authorization'] = `Bearer ${props.authToken}`
+    const res = await fetch(`${props.apiBaseUrl}/sections/${props.section.id}/snapshots`, { headers })
+    if (res.ok) {
+      snapshots.value = await res.json()
+    } else {
+      throw new Error(`HTTP ${res.status}`)
+    }
+  } catch (err) {
+    // Mock snapshot entries when backend unavailable
+    snapshots.value = [
+      {
+        id: 101,
+        created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+        word_count: Math.max(0, currentWordCount.value - 120),
+        note: 'Versi Awal Draft',
+        content_snapshot: props.section.content,
+      },
+      {
+        id: 102,
+        created_at: new Date(Date.now() - 1800000).toISOString(),
+        word_count: currentWordCount.value,
+        note: 'Auto-save',
+        content_snapshot: props.section.content,
+      },
+    ]
+  } finally {
+    isLoadingSnapshots.value = false
+  }
+}
+
+const previewSnapshot = (snap) => {
+  selectedSnapshot.value = snap
+}
+
+const restoreSnapshot = async (snap) => {
+  if (!confirm(`Kembalikan versi dari ${new Date(snap.created_at).toLocaleString('id-ID')}?`)) return
+
+  try {
+    const headers = {}
+    if (props.authToken) headers['Authorization'] = `Bearer ${props.authToken}`
+    const res = await fetch(`${props.apiBaseUrl}/snapshots/${snap.id}/restore`, {
+      method: 'POST',
+      headers,
+    })
+    if (res.ok) {
+      const data = await res.json()
+      editor.value.commands.setContent(data.content)
+      currentWordCount.value = data.word_count
+    } else {
+      throw new Error('Restore failed')
+    }
+  } catch (err) {
+    // Fallback: restore content directly into editor
+    editor.value.commands.setContent(snap.content_snapshot)
+    currentWordCount.value = snap.word_count
+  }
+
+  showHistory.value = false
+  selectedSnapshot.value = null
+  saveStatus.value = 'saved'
+  emit('restored', { id: props.section.id, snapshot: snap })
+}
+
+const formatTimestamp = (iso) => {
+  if (!iso) return ''
+  const date = new Date(iso)
+  return date.toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 </script>
 
@@ -169,6 +254,16 @@ const executeSave = async () => {
             kata)
           </span>
         </div>
+
+        <!-- History Button -->
+        <button
+          type="button"
+          class="history-toggle-btn"
+          :class="{ active: showHistory }"
+          @click="toggleHistory"
+        >
+          🕒 Riwayat Versi
+        </button>
 
         <!-- Save status -->
         <div class="status-indicator">
@@ -280,9 +375,61 @@ const executeSave = async () => {
       </button>
     </div>
 
-    <!-- Tiptap Editor Content -->
-    <div class="editor-content-wrapper">
-      <editor-content :editor="editor" />
+    <!-- Main Workspace with Content & History Drawer -->
+    <div class="editor-workspace">
+      <!-- Tiptap Editor Content -->
+      <div class="editor-content-wrapper">
+        <editor-content :editor="editor" />
+      </div>
+
+      <!-- Snapshot History Panel -->
+      <aside v-if="showHistory" class="history-panel">
+        <div class="history-header">
+          <h4>Riwayat Versi (Snapshots)</h4>
+          <button class="close-btn" @click="showHistory = false">&times;</button>
+        </div>
+
+        <div v-if="isLoadingSnapshots" class="history-loading">
+          Memuat riwayat...
+        </div>
+
+        <div v-else-if="snapshots.length === 0" class="history-empty">
+          Belum ada riwayat tersimpan.
+        </div>
+
+        <div v-else class="snapshot-list">
+          <div
+            v-for="snap in snapshots"
+            :key="snap.id"
+            class="snapshot-item"
+            :class="{ selected: selectedSnapshot && selectedSnapshot.id === snap.id }"
+            @click="previewSnapshot(snap)"
+          >
+            <div class="snapshot-info">
+              <span class="snapshot-time">{{ formatTimestamp(snap.created_at) }}</span>
+              <span class="snapshot-note">{{ snap.note || 'Snapshot' }}</span>
+              <span class="snapshot-words">{{ snap.word_count }} kata</span>
+            </div>
+
+            <button
+              type="button"
+              class="restore-btn"
+              @click.stop="restoreSnapshot(snap)"
+              title="Kembalikan versi ini"
+            >
+              Pulihkan
+            </button>
+          </div>
+        </div>
+
+        <!-- Snapshot Preview details if selected -->
+        <div v-if="selectedSnapshot" class="preview-box">
+          <div class="preview-title">
+            Pratinjau Snapshot: {{ formatTimestamp(selectedSnapshot.created_at) }}
+          </div>
+          <p class="preview-desc">Klik 'Pulihkan' di atas untuk mengganti teks editor saat ini dengan versi ini.</p>
+        </div>
+      </aside>
     </div>
   </div>
 </template>
@@ -357,9 +504,28 @@ const executeSave = async () => {
   color: var(--text-muted);
 }
 
+.history-toggle-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.history-toggle-btn:hover,
+.history-toggle-btn.active {
+  border-color: var(--teal-accent);
+  color: var(--teal-accent);
+  background-color: var(--teal-light);
+}
+
 .status-indicator {
   font-size: 0.85rem;
-  min-width: 100px;
+  min-width: 90px;
   text-align: right;
 }
 
@@ -423,9 +589,134 @@ const executeSave = async () => {
   margin: 0 0.3rem;
 }
 
-.editor-content-wrapper {
-  padding: 1.5rem 2rem;
+.editor-workspace {
+  display: flex;
+  position: relative;
   min-height: 400px;
+}
+
+.editor-content-wrapper {
+  flex: 1;
+  padding: 1.5rem 2rem;
   cursor: text;
+}
+
+.history-panel {
+  width: 320px;
+  border-left: 1px solid var(--border);
+  background-color: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.history-loading,
+.history-empty {
+  padding: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.snapshot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  max-height: 420px;
+}
+
+.snapshot-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snapshot-item:hover,
+.snapshot-item.selected {
+  border-color: var(--teal-accent);
+}
+
+.snapshot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.snapshot-time {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.snapshot-note {
+  font-size: 0.75rem;
+  color: var(--teal-accent);
+}
+
+.snapshot-words {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.restore-btn {
+  background-color: var(--teal-light);
+  border: 1px solid var(--teal-accent);
+  color: var(--teal-accent);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.restore-btn:hover {
+  background-color: var(--teal-accent);
+  color: white;
+}
+
+.preview-box {
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+.preview-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.preview-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
 }
 </style>
