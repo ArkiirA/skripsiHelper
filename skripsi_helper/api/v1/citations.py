@@ -17,6 +17,7 @@ from skripsi_helper.services.citation_extractor import (
     lookup_crossref,
     format_citation_string,
 )
+from skripsi_helper.services.bibliography import build_bibliography
 
 router = APIRouter(tags=["citations"])
 
@@ -197,6 +198,42 @@ def list_project_citations(
         .order_by(Citation.created_at.desc())
     ).scalars().all()
     return citations
+
+
+@router.get("/projects/{project_id}/bibliography")
+def get_project_bibliography(
+    project_id: int,
+    style: Optional[str] = "apa",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Generate ordered Daftar Pustaka formatted for pedoman citation style."""
+    verify_project_ownership(project_id, current_user.id, db)
+
+    citations = db.execute(
+        select(Citation)
+        .where(Citation.skripsi_project_id == project_id)
+        .order_by(Citation.created_at.asc())
+    ).scalars().all()
+
+    # Convert to dict representation
+    citations_data = [
+        {
+            "id": c.id,
+            "title": c.title,
+            "authors": c.authors,
+            "year": c.year,
+            "journal": c.journal,
+            "volume": c.volume,
+            "issue": c.issue,
+            "pages": c.pages,
+            "doi": c.doi,
+            "url": c.url,
+        }
+        for c in citations
+    ]
+
+    return build_bibliography(citations_data, style=style or "apa")
 
 
 @router.get("/citations/{citation_id}/download")

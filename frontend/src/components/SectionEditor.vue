@@ -16,6 +16,14 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  citations: {
+    type: Array,
+    default: () => [],
+  },
+  citationStyle: {
+    type: String,
+    default: 'apa',
+  },
 })
 
 const emit = defineEmits(['saved', 'word-count-change', 'restored'])
@@ -29,6 +37,10 @@ const showHistory = ref(false)
 const snapshots = ref([])
 const selectedSnapshot = ref(null)
 const isLoadingSnapshots = ref(false)
+
+// Citation picker state
+const showCitationPicker = ref(false)
+const citationSearch = ref('')
 
 // Word count calculation
 const calculateWordCount = (text) => {
@@ -57,6 +69,17 @@ const wordCountStatus = computed(() => {
   if (max !== null && count > max) return 'over'
   if (min !== null || max !== null) return 'optimal'
   return 'neutral'
+})
+
+// Filtered citations for picker
+const filteredCitations = computed(() => {
+  if (!citationSearch.value) return props.citations
+  const q = citationSearch.value.toLowerCase()
+  return props.citations.filter(
+    (c) =>
+      c.title.toLowerCase().includes(q) ||
+      (c.authors && JSON.stringify(c.authors).toLowerCase().includes(q))
+  )
 })
 
 // Initialize Tiptap
@@ -89,6 +112,7 @@ watch(
       saveStatus.value = 'idle'
       showHistory.value = false
       selectedSnapshot.value = null
+      showCitationPicker.value = false
     }
   }
 )
@@ -166,7 +190,6 @@ const toggleHistory = async () => {
       throw new Error(`HTTP ${res.status}`)
     }
   } catch (err) {
-    // Mock snapshot entries when backend unavailable
     snapshots.value = [
       {
         id: 101,
@@ -210,7 +233,6 @@ const restoreSnapshot = async (snap) => {
       throw new Error('Restore failed')
     }
   } catch (err) {
-    // Fallback: restore content directly into editor
     editor.value.commands.setContent(snap.content_snapshot)
     currentWordCount.value = snap.word_count
   }
@@ -230,6 +252,34 @@ const formatTimestamp = (iso) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// Insert inline citation
+const insertCitation = (citation, index) => {
+  const style = (props.citationStyle || 'apa').toLowerCase()
+  let marker = ''
+
+  if (style === 'ieee' || style === 'vancouver') {
+    marker = `[${index + 1}]`
+  } else {
+    const rawAuthors = citation.authors || []
+    const firstAuthor = rawAuthors[0]?.name || (typeof rawAuthors[0] === 'string' ? rawAuthors[0] : 'Anonim')
+    const family = firstAuthor.includes(',')
+      ? firstAuthor.split(',')[0].trim()
+      : firstAuthor.split(' ').pop() || 'Anonim'
+    const year = citation.year || 'n.d.'
+
+    if (style === 'harvard' || style === 'chicago') {
+      marker = `(${family} ${year})`
+    } else {
+      marker = `(${family}, ${year})`
+    }
+  }
+
+  if (editor.value) {
+    editor.value.chain().focus().insertContent(` ${marker} `).run()
+  }
+  showCitationPicker.value = false
 }
 </script>
 
@@ -262,7 +312,7 @@ const formatTimestamp = (iso) => {
           :class="{ active: showHistory }"
           @click="toggleHistory"
         >
-          🕒 Riwayat Versi
+          🕒 Riwayat
         </button>
 
         <!-- Save status -->
@@ -356,6 +406,51 @@ const formatTimestamp = (iso) => {
 
       <span class="divider"></span>
 
+      <!-- Citation Insert Button -->
+      <div class="citation-dropdown-wrap">
+        <button
+          type="button"
+          class="citation-btn"
+          :class="{ active: showCitationPicker }"
+          @click="showCitationPicker = !showCitationPicker"
+          title="Sisipkan Sitasi ke Naskah"
+        >
+          📎 Sisipkan Sitasi
+        </button>
+
+        <!-- Inline Citation Picker Popover -->
+        <div v-if="showCitationPicker" class="citation-popover">
+          <div class="popover-header">
+            <span>Pilih Sitasi Referensi</span>
+            <button class="close-popover" @click="showCitationPicker = false">&times;</button>
+          </div>
+          <input
+            v-model="citationSearch"
+            type="text"
+            placeholder="Cari judul atau penulis..."
+            class="popover-search"
+          />
+          <div class="popover-list">
+            <div
+              v-for="(c, idx) in filteredCitations"
+              :key="c.id"
+              class="popover-item"
+              @click="insertCitation(c, idx)"
+            >
+              <div class="popover-item-title">{{ c.title }}</div>
+              <div class="popover-item-sub">
+                {{ c.authors?.[0]?.name || 'Anonim' }} ({{ c.year || 'n.d.' }})
+              </div>
+            </div>
+            <div v-if="filteredCitations.length === 0" class="popover-empty">
+              Tidak ada referensi ditemukan.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <span class="divider"></span>
+
       <button
         type="button"
         :disabled="!editor.can().undo()"
@@ -385,7 +480,7 @@ const formatTimestamp = (iso) => {
       <!-- Snapshot History Panel -->
       <aside v-if="showHistory" class="history-panel">
         <div class="history-header">
-          <h4>Riwayat Versi (Snapshots)</h4>
+          <h4>Riwayat Versi</h4>
           <button class="close-btn" @click="showHistory = false">&times;</button>
         </div>
 
@@ -425,9 +520,9 @@ const formatTimestamp = (iso) => {
         <!-- Snapshot Preview details if selected -->
         <div v-if="selectedSnapshot" class="preview-box">
           <div class="preview-title">
-            Pratinjau Snapshot: {{ formatTimestamp(selectedSnapshot.created_at) }}
+            Pratinjau: {{ formatTimestamp(selectedSnapshot.created_at) }}
           </div>
-          <p class="preview-desc">Klik 'Pulihkan' di atas untuk mengganti teks editor saat ini dengan versi ini.</p>
+          <p class="preview-desc">Klik 'Pulihkan' untuk menerapkan versi ini.</p>
         </div>
       </aside>
     </div>
@@ -551,6 +646,7 @@ const formatTimestamp = (iso) => {
   padding: 0.5rem 1rem;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  position: relative;
 }
 
 .toolbar button {
@@ -582,6 +678,98 @@ const formatTimestamp = (iso) => {
   cursor: not-allowed;
 }
 
+.citation-dropdown-wrap {
+  position: relative;
+}
+
+.citation-btn {
+  border: 1px solid var(--border) !important;
+  background: var(--bg-subtle) !important;
+  color: var(--teal-accent) !important;
+  font-weight: 600;
+}
+
+.citation-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  width: 320px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: 0.75rem;
+}
+
+.popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.close-popover {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.popover-search {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+.popover-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.popover-item {
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--bg-subtle);
+}
+
+.popover-item:hover {
+  background: var(--teal-light);
+  border-color: var(--teal-accent);
+}
+
+.popover-item-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popover-item-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.popover-empty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
 .divider {
   width: 1px;
   height: 18px;
@@ -602,7 +790,7 @@ const formatTimestamp = (iso) => {
 }
 
 .history-panel {
-  width: 320px;
+  width: 300px;
   border-left: 1px solid var(--border);
   background-color: var(--bg-subtle);
   display: flex;
