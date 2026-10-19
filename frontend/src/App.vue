@@ -289,6 +289,11 @@ const copyBibliography = () => {
   navigator.clipboard.writeText(text)
   alert('Daftar pustaka disalin ke clipboard!')
 }
+
+const isSidebarOpen = ref(false)
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
 </script>
 
 <template>
@@ -296,6 +301,14 @@ const copyBibliography = () => {
     <!-- Top Navbar -->
     <header class="app-header">
       <div class="header-left">
+        <button
+          type="button"
+          class="sidebar-toggle"
+          aria-label="Toggle navigation menu"
+          @click="toggleSidebar"
+        >
+          ☰
+        </button>
         <h1 class="logo">Skripsi<span>Helper</span></h1>
         <span class="project-title">Pengaruh AI terhadap Produktivitas Mahasiswa Tingkat Akhir</span>
       </div>
@@ -341,7 +354,10 @@ const copyBibliography = () => {
     <!-- Main Workspace -->
     <div class="workspace-body">
       <!-- Outline Sidebar -->
-      <aside class="outline-sidebar">
+      <aside
+        class="outline-sidebar"
+        :class="{ open: isSidebarOpen }"
+      >
         <div class="sidebar-header">
           <h3>Sistematika Skripsi</h3>
           <span class="sub-label">Pedoman UI 2024</span>
@@ -588,9 +604,9 @@ const copyBibliography = () => {
 }
 
 .reminder-pill {
-  background-color: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.35rem 0.75rem;
@@ -734,7 +750,7 @@ const copyBibliography = () => {
 }
 
 .badge-unresolved {
-  color: #d97706;
+  color: var(--warning);
   font-weight: 700;
 }
 
@@ -831,9 +847,9 @@ const copyBibliography = () => {
 }
 
 .reminder-banner {
-  background-color: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
   padding: 1rem 1.25rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -906,9 +922,9 @@ const copyBibliography = () => {
 .status-toggle-btn {
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
-  border: 1px solid #fde68a;
-  background-color: #fffbeb;
-  color: #92400e;
+  border: 1px solid var(--warning-border);
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
