@@ -171,3 +171,32 @@ class CitationOut(BaseModel):
     needs_manual_completion: bool = False
     source: str = "auto"
     created_at: datetime
+
+
+class KonsultasiCreate(BaseModel):
+    """Request to create a konsultasi log entry."""
+    notes: str
+    date: Optional[datetime] = None
+    action_items: Optional[List[Any]] = None
+
+
+class KonsultasiOut(BaseModel):
+    """Konsultasi log response model."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    skripsi_project_id: int
+    date: datetime
+    notes: str
+    action_items: List[Any] = []
+    is_resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class KonsultasiSummaryOut(BaseModel):
+    """Summary of konsultasi log for reminders & dashboard."""
+    total_entries: int
+    unresolved_count: int
+    resolved_count: int
+    unresolved_entries: List[KonsultasiOut]

@@ -119,17 +119,43 @@ const citations = ref([
   },
 ])
 
-// Selected view: section ID or 'bibliography'
+// Konsultasi Logs (Advisor notes)
+const konsultasiLogs = ref([
+  {
+    id: 1,
+    date: '2024-10-12',
+    notes: 'Perjelas batasan masalah di Bab 1. Jangan terlalu luas ke semua fakultas, fokus ke rumpun sains & teknologi.',
+    is_resolved: false,
+    created_at: '2024-10-12T10:30:00Z',
+  },
+  {
+    id: 2,
+    date: '2024-10-05',
+    notes: 'Tambahkan minimal 5 referensi jurnal internasional bereputasi terbitan 3 tahun terakhir.',
+    is_resolved: true,
+    resolved_at: '2024-10-08T14:20:00Z',
+    created_at: '2024-10-05T09:15:00Z',
+  },
+])
+
+const newLogNotes = ref('')
+const newLogDate = ref(new Date().toISOString().slice(0, 10))
+
+// Selected view: section ID, 'bibliography', or 'konsultasi'
 const activeSectionId = ref(1)
 const citationStyle = ref('apa')
 
 const activeSection = computed(() => {
-  if (activeSectionId.value === 'bibliography') return null
+  if (typeof activeSectionId.value !== 'number') return null
   return sections.value.find((s) => s.id === activeSectionId.value) || sections.value[0]
 })
 
 const totalWordCount = computed(() => {
   return sections.value.reduce((acc, cur) => acc + (cur.word_count || 0), 0)
+})
+
+const unresolvedKonsultasiCount = computed(() => {
+  return konsultasiLogs.value.filter((k) => !k.is_resolved).length
 })
 
 const handleWordCountChange = ({ id, wordCount }) => {
@@ -145,6 +171,25 @@ const handleSaved = ({ id, payload }) => {
     target.content = payload.content
     target.word_count = payload.word_count
   }
+}
+
+// Add new konsultasi log
+const addKonsultasiLog = () => {
+  if (!newLogNotes.value.trim()) return
+  konsultasiLogs.value.unshift({
+    id: Date.now(),
+    date: newLogDate.value,
+    notes: newLogNotes.value.trim(),
+    is_resolved: false,
+    created_at: new Date().toISOString(),
+  })
+  newLogNotes.value = ''
+}
+
+// Toggle resolved status
+const toggleLogResolved = (log) => {
+  log.is_resolved = !log.is_resolved
+  log.resolved_at = log.is_resolved ? new Date().toISOString() : null
 }
 
 // Format bibliography list per style
@@ -231,6 +276,16 @@ const copyBibliography = () => {
         <div class="total-stats">
           Total Kata: <strong>{{ totalWordCount }}</strong>
         </div>
+
+        <button
+          v-if="unresolvedKonsultasiCount > 0"
+          type="button"
+          class="reminder-pill"
+          @click="activeSectionId = 'konsultasi'"
+        >
+          ⚠️ {{ unresolvedKonsultasiCount }} Catatan Dosen Belum Selesai
+        </button>
+
         <div class="user-pill">
           Mahasiswa UI (Hukum)
         </div>
@@ -264,7 +319,7 @@ const copyBibliography = () => {
           <!-- Daftar Pustaka Item -->
           <button
             type="button"
-            class="outline-item bibliography-nav-item"
+            class="outline-item nav-extra-item"
             :class="{ active: activeSectionId === 'bibliography' }"
             @click="activeSectionId = 'bibliography'"
           >
@@ -272,6 +327,23 @@ const copyBibliography = () => {
             <div class="outline-sub">
               <span>{{ citations.length }} referensi</span>
               <span class="target">{{ citationStyle.toUpperCase() }}</span>
+            </div>
+          </button>
+
+          <!-- Catatan Bimbingan Item -->
+          <button
+            type="button"
+            class="outline-item nav-extra-item"
+            :class="{ active: activeSectionId === 'konsultasi' }"
+            @click="activeSectionId = 'konsultasi'"
+          >
+            <div class="outline-title">📝 Catatan Bimbingan</div>
+            <div class="outline-sub">
+              <span>{{ konsultasiLogs.length }} sesi</span>
+              <span v-if="unresolvedKonsultasiCount > 0" class="badge-unresolved">
+                {{ unresolvedKonsultasiCount }} pending
+              </span>
+              <span v-else class="target">Semua selesai</span>
             </div>
           </button>
         </nav>
@@ -290,15 +362,14 @@ const copyBibliography = () => {
         />
 
         <!-- Bibliography View -->
-        <div v-else-if="activeSectionId === 'bibliography'" class="bibliography-view">
-          <div class="bib-header">
+        <div v-else-if="activeSectionId === 'bibliography'" class="panel-view">
+          <div class="panel-header">
             <div>
               <h2>Daftar Pustaka</h2>
-              <p class="bib-subtitle">Daftar referensi otomatis terformat sesuai pedoman penulisan.</p>
+              <p class="panel-subtitle">Daftar referensi otomatis terformat sesuai pedoman penulisan.</p>
             </div>
 
-            <div class="bib-actions">
-              <!-- Style Switcher -->
+            <div class="panel-actions">
               <div class="style-selector">
                 <label for="style-select">Gaya Sitasi:</label>
                 <select id="style-select" v-model="citationStyle">
@@ -310,14 +381,14 @@ const copyBibliography = () => {
                 </select>
               </div>
 
-              <button type="button" class="copy-btn" @click="copyBibliography">
+              <button type="button" class="btn-primary" @click="copyBibliography">
                 📋 Salin Semua
               </button>
             </div>
           </div>
 
-          <div class="bib-card">
-            <div v-if="formattedBibliography.length === 0" class="bib-empty">
+          <div class="content-card">
+            <div v-if="formattedBibliography.length === 0" class="empty-state">
               Belum ada referensi ditambahkan.
             </div>
 
@@ -329,6 +400,76 @@ const copyBibliography = () => {
               >
                 <span class="bib-marker">{{ b.marker }}</span>
                 <p class="bib-text">{{ b.formatted }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Konsultasi Log View -->
+        <div v-else-if="activeSectionId === 'konsultasi'" class="panel-view">
+          <div class="panel-header">
+            <div>
+              <h2>Catatan Bimbingan (Konsultasi Log)</h2>
+              <p class="panel-subtitle">Catat arahan dan revisi dari dosen pembimbing.</p>
+            </div>
+          </div>
+
+          <!-- Unresolved Reminder Banner -->
+          <div v-if="unresolvedKonsultasiCount > 0" class="reminder-banner">
+            <strong>⚠️ Ada {{ unresolvedKonsultasiCount }} revisi belum diselesaikan:</strong>
+            Periksa catatan di bawah dan centang status setelah diperbaiki pada naskah.
+          </div>
+
+          <!-- Add Note Box -->
+          <div class="content-card new-log-box">
+            <h3>+ Tambah Catatan Sesi Bimbingan</h3>
+            <div class="new-log-form">
+              <div class="form-row">
+                <label>Tanggal Bimbingan:</label>
+                <input v-model="newLogDate" type="date" class="form-input" />
+              </div>
+              <textarea
+                v-model="newLogNotes"
+                placeholder="Tuliskan arahan, masukan, atau poin revisi dari dosen..."
+                rows="3"
+                class="form-textarea"
+              ></textarea>
+              <button type="button" class="btn-primary" @click="addKonsultasiLog">
+                Simpan Catatan
+              </button>
+            </div>
+          </div>
+
+          <!-- Log Timeline -->
+          <div class="content-card">
+            <h3>Daftar Sesi Bimbingan ({{ konsultasiLogs.length }})</h3>
+
+            <div v-if="konsultasiLogs.length === 0" class="empty-state">
+              Belum ada catatan bimbingan tersimpan.
+            </div>
+
+            <div v-else class="log-timeline">
+              <div
+                v-for="log in konsultasiLogs"
+                :key="log.id"
+                class="log-card"
+                :class="{ resolved: log.is_resolved }"
+              >
+                <div class="log-card-header">
+                  <span class="log-date">📅 {{ log.date }}</span>
+                  <button
+                    type="button"
+                    class="status-toggle-btn"
+                    :class="{ 'btn-resolved': log.is_resolved }"
+                    @click="toggleLogResolved(log)"
+                  >
+                    {{ log.is_resolved ? '✓ Selesai' : '⏳ Belum Selesai' }}
+                  </button>
+                </div>
+                <p class="log-notes">{{ log.notes }}</p>
+                <div v-if="log.resolved_at" class="log-footer">
+                  Diselesaikan pada {{ new Date(log.resolved_at).toLocaleDateString('id-ID') }}
+                </div>
               </div>
             </div>
           </div>
@@ -398,6 +539,17 @@ const copyBibliography = () => {
 
 .total-stats strong {
   color: var(--teal-accent);
+}
+
+.reminder-pill {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  cursor: pointer;
 }
 
 .user-pill {
@@ -489,10 +641,15 @@ const copyBibliography = () => {
   color: var(--text-muted);
 }
 
-.bibliography-nav-item {
+.nav-extra-item {
   border-top: 1px dashed var(--border);
   margin-top: 0.5rem;
   padding-top: 0.8rem;
+}
+
+.badge-unresolved {
+  color: #d97706;
+  font-weight: 700;
 }
 
 .editor-pane {
@@ -502,14 +659,14 @@ const copyBibliography = () => {
   background-color: var(--bg-primary);
 }
 
-/* Bibliography View */
-.bibliography-view {
+/* Panel Views (Bibliography / Konsultasi) */
+.panel-view {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.bib-header {
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -517,18 +674,18 @@ const copyBibliography = () => {
   border-bottom: 1px solid var(--border);
 }
 
-.bib-header h2 {
+.panel-header h2 {
   font-size: 1.5rem;
   font-weight: 700;
 }
 
-.bib-subtitle {
+.panel-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
 }
 
-.bib-actions {
+.panel-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -551,11 +708,11 @@ const copyBibliography = () => {
   font-weight: 600;
 }
 
-.copy-btn {
+.btn-primary {
   background-color: var(--teal-accent);
   color: white;
   border: none;
-  padding: 0.4rem 0.8rem;
+  padding: 0.45rem 0.9rem;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -563,11 +720,11 @@ const copyBibliography = () => {
   transition: opacity 0.15s ease;
 }
 
-.copy-btn:hover {
+.btn-primary:hover {
   opacity: 0.9;
 }
 
-.bib-card {
+.content-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -575,12 +732,119 @@ const copyBibliography = () => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.bib-empty {
+.content-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
   padding: 2rem;
   text-align: center;
   color: var(--text-muted);
 }
 
+.reminder-banner {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.new-log-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.form-input {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.log-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.log-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  background-color: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-card.resolved {
+  background-color: var(--bg-subtle);
+  opacity: 0.8;
+}
+
+.log-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.log-date {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.status-toggle-btn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid #fde68a;
+  background-color: #fffbeb;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-toggle-btn.btn-resolved {
+  border-color: var(--teal-accent);
+  background-color: var(--teal-light);
+  color: var(--teal-accent);
+}
+
+.log-notes {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.log-footer {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Bibliography View */
 .bib-entries {
   display: flex;
   flex-direction: column;
