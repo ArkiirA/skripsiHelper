@@ -304,10 +304,11 @@ const toggleSidebar = () => {
         <button
           type="button"
           class="sidebar-toggle"
-          aria-label="Toggle navigation menu"
+          :aria-label="`Toggle navigation menu ${isSidebarOpen ? 'close' : 'open'}`"
+          :aria-expanded="isSidebarOpen"
           @click="toggleSidebar"
         >
-          ☰
+          <span aria-hidden="true">☰</span>
         </button>
         <h1 class="logo">Skripsi<span>Helper</span></h1>
         <span class="project-title">Pengaruh AI terhadap Produktivitas Mahasiswa Tingkat Akhir</span>
@@ -571,6 +572,19 @@ const toggleSidebar = () => {
   font-weight: 800;
   color: var(--text-main);
   letter-spacing: -0.5px;
+}
+
+.sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
 }
 
 .logo span {
@@ -971,5 +985,36 @@ const toggleSidebar = () => {
   flex: 1;
   font-size: 0.95rem;
   color: var(--text-main);
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: inline-flex !important;
+  }
+
+  .outline-sidebar {
+    position: fixed;
+    left: 0;
+    top: var(--header-height);
+    height: calc(100vh - var(--header-height));
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 100;
+    box-shadow: var(--shadow-sidebar);
+  }
+
+  .outline-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workspace-body {
+    padding-left: 0;
+  }
+
+  .editor-pane {
+    padding: 1rem;
+  }
 }
 </style>
