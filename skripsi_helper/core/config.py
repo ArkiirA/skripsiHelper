@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
 
     DATABASE_URL: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/skripsi_helper"
+        default="postgresql+psycopg2://skripsi:skripsi123@127.0.0.1:5432/skripsi"
     )
     SQL_DEBUG: bool = False
 
