@@ -125,3 +125,49 @@ class SnapshotOut(BaseModel):
     note: Optional[str] = None
     created_at: datetime
     content_snapshot: Optional[Any] = None
+
+
+class CitationCreateManual(BaseModel):
+    """Manual citation entry request."""
+    title: str
+    authors: List[Any]
+    year: Optional[int] = None
+    journal: Optional[str] = None
+    volume: Optional[str] = None
+    issue: Optional[str] = None
+    pages: Optional[str] = None
+    doi: Optional[str] = None
+    url: Optional[str] = None
+    citation_style: Optional[str] = "apa"
+    section_id: Optional[int] = None
+
+
+class DoiLookupRequest(BaseModel):
+    """Lookup citation via DOI string."""
+    doi: str
+    section_id: Optional[int] = None
+
+
+class CitationOut(BaseModel):
+    """Citation response model."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    skripsi_project_id: int
+    section_id: Optional[int] = None
+    uploaded_pdf_id: Optional[int] = None
+    title: str
+    authors: List[Any]
+    year: Optional[int] = None
+    journal: Optional[str] = None
+    volume: Optional[str] = None
+    issue: Optional[str] = None
+    pages: Optional[str] = None
+    doi: Optional[str] = None
+    url: Optional[str] = None
+    citation_string: Optional[str] = None
+    citation_style: str = "apa"
+    is_manual: bool = False
+    needs_manual_completion: bool = False
+    source: str = "auto"
+    created_at: datetime

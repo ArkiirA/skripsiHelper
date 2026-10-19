@@ -19,6 +19,8 @@ dependencies = [
     "pytest>=9.1.1",
     "httpx>=0.28.1",
     "sqlmodel>=0.0.48",
+    "python-multipart>=0.0.32",
+    "pymupdf>=1.28.2",
 ]
 
 [project.scripts]
