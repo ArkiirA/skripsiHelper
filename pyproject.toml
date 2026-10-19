@@ -1,0 +1,32 @@
+[project]
+name = "skripsi-helper"
+version = "0.1.0"
+description = "Thesis-writing tool for Indonesian university students"
+readme = "README.md"
+authors = [
+    { name = "ArkiirA", email = "rifki260405@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.146.0",
+    "uvicorn[standard]>=0.34.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "psycopg2-binary>=2.9.0",
+    "google-cloud-storage>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.16.0",
+    "pytest>=9.1.1",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+skripsi-helper = "skripsi_helper:main"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

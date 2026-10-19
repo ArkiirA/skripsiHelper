@@ -1,0 +1,6 @@
+skripsi_helper/
+.venv/
+.pytest_cache/
+*.db
+*.sqlite
+*.log
