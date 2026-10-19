@@ -1,10 +1,27 @@
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 
 from skripsi_helper.db.session import Base
+
+
+class University(Base):
+    """University — name and region info for pedoman presets."""
+    __tablename__ = "universities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    city = Column(String)
+    province = Column(String)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    pedoman_presets = relationship("PedomanPreset", back_populates="university")
 
 
 class PedomanPreset(Base):
