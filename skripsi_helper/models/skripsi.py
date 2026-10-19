@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON, ForeignKey, Text
 from sqlalchemy.orm import relationship
@@ -51,9 +51,16 @@ class Section(Base):
     order = Column(Integer, default=0)
     is_completed = Column(Boolean, default=False)
     word_count = Column(Integer, default=0)
+    status = Column(String, default="active")  # active, archived, placeholder
+
+    # Optional pedoman constraints (override preset defaults)
+    min_pages = Column(Integer, nullable=True)
+    max_pages = Column(Integer, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     skripsi_project = relationship("SkripsiProject", back_populates="sections")
+    citations = relationship("Citation", back_populates="section", cascade="all, delete-orphan")
+    uploaded_pdfs = relationship("UploadedPdf", back_populates="section", cascade="all, delete-orphan")

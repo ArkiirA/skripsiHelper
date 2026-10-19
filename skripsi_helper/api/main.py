@@ -1,6 +1,24 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from skripsi_helper.core.config import settings
+from skripsi_helper.api.v1 import auth, pedoman, projects
 
 app = FastAPI(title="SkripsiHelper API", version="0.1.0")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Routers
+app.include_router(auth.router)
+app.include_router(pedoman.router)
+app.include_router(projects.router)
 
 
 @app.get("/health", include_in_schema=False)
