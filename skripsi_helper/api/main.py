@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from skripsi_helper.core.config import settings
-from skripsi_helper.api.v1 import auth, pedoman, projects, sections, snapshots, citations, konsultasi, export, dashboard
+from skripsi_helper.api.v1 import auth, pedoman, projects, sections, snapshots, citations, konsultasi, export, dashboard, ai
 
 app = FastAPI(title="SkripsiHelper API", version="0.1.0")
 
@@ -25,6 +25,7 @@ app.include_router(citations.router)
 app.include_router(konsultasi.router)
 app.include_router(export.router)
 app.include_router(dashboard.router)
+app.include_router(ai.router)
 
 
 @app.get("/health", include_in_schema=False)

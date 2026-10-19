@@ -200,3 +200,42 @@ class KonsultasiSummaryOut(BaseModel):
     unresolved_count: int
     resolved_count: int
     unresolved_entries: List[KonsultasiOut]
+
+
+# AI Assist schemas
+class OutlineRequest(BaseModel):
+    """Request for outline suggestion."""
+    project_id: int
+    topic: str
+    pedoman_sections: Optional[List[str]] = None
+
+
+class OutlineResponse(BaseModel):
+    """Response with suggested outline."""
+    outline: str
+
+
+class ParaphraseRequest(BaseModel):
+    """Request for paraphrasing."""
+    text: str
+    tone: Optional[str] = "academic"
+
+
+class ParaphraseResponse(BaseModel):
+    """Response with paraphrased text."""
+    paraphrase: str
+
+
+class CheckRequest(BaseModel):
+    """Request for grammar/style checking."""
+    text: str
+    project_id: Optional[int] = None
+    language: Optional[str] = "id-ID"
+    pedoman_sections: Optional[List[str]] = None
+
+
+class CheckResponse(BaseModel):
+    """Response with check results."""
+    matches: Optional[List[Any]] = None
+    language: Optional[str] = None
+    analysis: Optional[str] = None
